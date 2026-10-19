@@ -35,7 +35,7 @@ El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como admi
 | `ADMIN_EMAIL` | tu correo de admin |
 | `APP_URL` | `https://tu-subdominio.tudominio.com` |
 | `BUSINESS_TZ` | p. ej. `America/Mexico_City` |
-| `CURRENCY`, `BUSINESS_NAME` | opcionales (`MXN`, `Masajes`) |
+| `CURRENCY`, `BUSINESS_NAME` | opcionales (`MXN`, `Masajes Ana`) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | credenciales SMTP de Mailtrap |
 | `MAIL_FROM` | remitente, p. ej. `Masajes <reservas@tudominio.com>` (en Mailtrap Sending el dominio debe estar verificado) |
 

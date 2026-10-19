@@ -26,7 +26,7 @@ export async function saveService(form: FormData) {
   if (id) await db.service.update({ where: { id }, data });
   else await db.service.create({ data });
   revalidatePath("/admin/servicios");
-  redirect("/admin/servicios");
+  redirect(`/admin/servicios?ok=${encodeURIComponent(id ? "Servicio actualizado" : "Servicio creado")}`);
 }
 
 export async function addWorkingHours(form: FormData) {
@@ -41,7 +41,7 @@ export async function addWorkingHours(form: FormData) {
   if (overlap) back("/admin/horarios", `Se encima con un rango existente del ${DAYS[overlap.dayOfWeek]}`);
   await db.workingHours.createMany({ data: days.map((dayOfWeek) => ({ dayOfWeek, startMin, endMin })) });
   revalidatePath("/admin/horarios");
-  redirect("/admin/horarios");
+  redirect(`/admin/horarios?ok=${encodeURIComponent("Horario agregado")}`);
 }
 
 export async function deleteWorkingHours(form: FormData) {
@@ -66,7 +66,7 @@ export async function addBlock(form: FormData) {
   if (end <= start) back("/admin/bloqueos", "El fin debe ser después del inicio");
   await db.blockedTime.create({ data: { start, end, reason } });
   revalidatePath("/admin/bloqueos");
-  redirect("/admin/bloqueos");
+  redirect(`/admin/bloqueos?ok=${encodeURIComponent("Bloqueo agregado")}`);
 }
 
 export async function deleteBlock(form: FormData) {
