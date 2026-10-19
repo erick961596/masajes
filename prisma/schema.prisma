@@ -1,0 +1,77 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  name         String
+  phone        String?
+  passwordHash String
+  role         Role      @default(CLIENT)
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
+}
+
+model Service {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  durationMin Int
+  priceCents  Int
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  bookings    Booking[]
+}
+
+/// Horario semanal de atención. Puede haber varios rangos por día.
+model WorkingHours {
+  id        String @id @default(uuid()) @db.Uuid
+  dayOfWeek Int // 0 = domingo ... 6 = sábado
+  startMin  Int // minutos desde medianoche, hora local del negocio
+  endMin    Int
+}
+
+/// Bloqueos puntuales (vacaciones, comida, días festivos).
+model BlockedTime {
+  id        String   @id @default(uuid()) @db.Uuid
+  start     DateTime
+  end       DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id         String        @id @default(uuid()) @db.Uuid
+  userId     String        @db.Uuid
+  user       User          @relation(fields: [userId], references: [id])
+  serviceId  String        @db.Uuid
+  service    Service       @relation(fields: [serviceId], references: [id])
+  start      DateTime
+  end        DateTime
+  status     BookingStatus @default(CONFIRMED)
+  priceCents Int
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([start])
+  @@index([userId])
+}
