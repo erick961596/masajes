@@ -1,33 +1,34 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
-import { Notice, SP, str } from "@/components/Notice";
-import { SlotPicker } from "@/components/SlotPicker";
-import { rescheduleBooking } from "@/app/actions";
+import { upcomingDays } from "@/lib/days";
+import { RescheduleClient } from "@/components/RescheduleClient";
 
-export default async function ReschedulePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
+export const metadata = { title: "Reagendar" };
+
+export default async function ReschedulePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sp = await searchParams;
   const user = await requireUser(`/reserva/${id}/reagendar`);
   const b = await db.booking.findUnique({ where: { id }, include: { service: true } }).catch(() => null);
   if (!b || (b.userId !== user.id && user.role !== "ADMIN")) notFound();
   if (b.status !== "CONFIRMED" || b.start <= new Date()) redirect(`/reserva/${id}`);
+  const days = await upcomingDays(28);
 
   return (
-    <>
-      <h1>Reagendar {b.service.name}</h1>
-      <p className="muted capitalize">Horario actual: {fmtDateTime(b.start)}</p>
-      <Notice error={str(sp.error)} />
-      <SlotPicker
-        basePath={`/reserva/${b.id}/reagendar`}
-        date={str(sp.fecha)}
-        durationMin={b.service.durationMin}
-        excludeBookingId={b.id}
-        action={rescheduleBooking}
-        hidden={{ id: b.id }}
-        buttonPrefix="Mover a "
-      />
-    </>
+    <div className="medium">
+      <p>
+        <Link href={`/reserva/${b.id}`}>← Volver a la cita</Link>
+      </p>
+      <div className="page-head">
+        <h1>Reagendar {b.service.name}</h1>
+        <p className="muted capitalize">Ahora: {fmtDateTime(b.start)}</p>
+      </div>
+      <div className="wizard">
+        <h2 className="step-title">Elige el nuevo horario</h2>
+        <RescheduleClient bookingId={b.id} serviceId={b.serviceId} days={days} />
+      </div>
+    </div>
   );
 }

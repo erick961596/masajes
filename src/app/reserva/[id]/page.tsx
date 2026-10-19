@@ -3,13 +3,16 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fmtDateTime, money } from "@/lib/format";
-import { Notice, SP, str } from "@/components/Notice";
+import { SP, str } from "@/lib/params";
+import { Notice } from "@/components/Notice";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { cancelBooking } from "@/app/actions";
 
+export const metadata = { title: "Tu reserva" };
+
 const okMsg: Record<string, string> = {
-  creada: "¡Listo! Tu reserva está confirmada. Te enviamos un correo con los detalles.",
-  reagendada: "Tu reserva se reagendó. Te enviamos un correo con el nuevo horario.",
-  cancelada: "Tu reserva se canceló.",
+  reagendada: "Listo, tu cita se reagendó",
+  cancelada: "Tu cita se canceló",
 };
 
 export default async function BookingPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SP }) {
@@ -20,31 +23,47 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     .findUnique({ where: { id }, include: { service: true, user: { select: { name: true, email: true, phone: true } } } })
     .catch(() => null);
   if (!b || (b.userId !== user.id && user.role !== "ADMIN")) notFound();
-  const editable = b.status === "CONFIRMED" && b.start > new Date();
+  const upcoming = b.start > new Date();
+  const editable = b.status === "CONFIRMED" && upcoming;
+  const badge = b.status === "CANCELLED" ? ["cancelled", "Cancelada"] : upcoming ? ["", "Confirmada"] : ["past", "Realizada"];
 
   return (
-    <div className="narrow">
-      <h1>Tu reserva</h1>
+    <div className="medium">
       <Notice error={str(sp.error)} ok={okMsg[str(sp.ok) || ""]} />
-      <div className="card">
-        <h3>{b.service.name}</h3>
-        <p className="capitalize">{fmtDateTime(b.start)}</p>
-        <p>
-          {b.service.durationMin} min · {money(b.priceCents)}
-        </p>
-        <p>
-          Estado: <span className={`badge ${b.status === "CANCELLED" ? "cancelled" : ""}`}>{b.status === "CANCELLED" ? "Cancelada" : "Confirmada"}</span>
-        </p>
-        {user.role === "ADMIN" && (
-          <p className="muted">
-            Cliente: {b.user.name} · {b.user.email}
-            {b.user.phone ? ` · ${b.user.phone}` : ""}
-          </p>
-        )}
-        {b.notes && <p className="muted">Notas: {b.notes}</p>}
-        <p className="muted">
-          Folio: <code>{b.id}</code>
-        </p>
+      <p>
+        <Link href={user.role === "ADMIN" && b.userId !== user.id ? "/admin" : "/cuenta"}>← Volver</Link>
+      </p>
+      <div className="card booking-hero">
+        <span>
+          <span className={`badge ${badge[0]}`}>{badge[1]}</span>
+        </span>
+        <h1>{b.service.name}</h1>
+        <span className="booking-when capitalize">{fmtDateTime(b.start)}</span>
+        <dl className="kv">
+          <dt>Duración</dt>
+          <dd>{b.service.durationMin} min</dd>
+          <dt>Precio</dt>
+          <dd>{money(b.priceCents)}</dd>
+          {user.role === "ADMIN" && (
+            <>
+              <dt>Cliente</dt>
+              <dd>
+                {b.user.name} · <a href={`mailto:${b.user.email}`}>{b.user.email}</a>
+                {b.user.phone ? ` · ${b.user.phone}` : ""}
+              </dd>
+            </>
+          )}
+          {b.notes && (
+            <>
+              <dt>Notas</dt>
+              <dd>{b.notes}</dd>
+            </>
+          )}
+          <dt>Folio</dt>
+          <dd>
+            <code>{b.id}</code>
+          </dd>
+        </dl>
       </div>
       {editable && (
         <div className="row">
@@ -53,7 +72,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           </Link>
           <form action={cancelBooking}>
             <input type="hidden" name="id" value={b.id} />
-            <button className="danger">Cancelar reserva</button>
+            <ConfirmButton className="btn danger" title="¿Cancelar esta cita?" text="Se liberará el horario y te avisaremos por correo." confirmText="Sí, cancelar">
+              Cancelar cita
+            </ConfirmButton>
           </form>
         </div>
       )}
