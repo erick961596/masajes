@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { config } from "@/lib/config";
+import { ChatBubble } from "@/components/ChatBubble";
+import { SocialIcon } from "@/components/SocialIcon";
 import { logout } from "./actions";
 import "./globals.css";
 
@@ -51,8 +53,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         <main>{children}</main>
         <footer className="foot">
-          © {new Date().getFullYear()} {config.businessName}
+          <div className="foot-inner">
+            <div>
+              <div className="brand">
+                <span className="brand-mark" aria-hidden>
+                  ❀
+                </span>
+                {config.businessName}
+              </div>
+              <p className="muted">Masajes y terapias para tu bienestar.</p>
+            </div>
+            <div className="foot-social">
+              {config.social.map((s) => (
+                <a key={s.name} href={s.url} target="_blank" rel="noreferrer" aria-label={s.name} title={`${s.name} ${s.handle}`}>
+                  <SocialIcon name={s.name} />
+                </a>
+              ))}
+            </div>
+          </div>
+          <p className="foot-copy">
+            © {new Date().getFullYear()} {config.businessName} · Todos los derechos reservados
+          </p>
         </footer>
+        <ChatBubble businessName={config.businessName} social={config.social} />
       </body>
     </html>
   );

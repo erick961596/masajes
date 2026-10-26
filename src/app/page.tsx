@@ -33,7 +33,7 @@ export default async function Home() {
             <div className="spacer" />
             <div className="service-meta">
               <span className="chip">{s.durationMin} min</span>
-              <span className="price">{money(s.priceCents)}</span>
+              <span className={s.priceCents ? "price" : "price tbd"}>{money(s.priceCents)}</span>
             </div>
             <Link className="btn ghost" href={`/reservar?servicio=${s.id}`}>
               Reservar

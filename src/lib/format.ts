@@ -3,7 +3,14 @@ import { es } from "date-fns/locale";
 import { config } from "./config";
 
 export function money(cents: number) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: config.currency }).format(cents / 100);
+  if (cents === 0) return "Precio a consultar";
+  const whole = cents % 100 === 0;
+  return new Intl.NumberFormat("es-CR", {
+    style: "currency",
+    currency: config.currency,
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  }).format(cents / 100);
 }
 
 export function fmtDateTime(d: Date) {
