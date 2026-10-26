@@ -109,7 +109,7 @@ export function BookingWizard(props: { services: WizardService[]; days: DayOptio
                 {s.description && <span className="muted">{s.description}</span>}
                 <span className="service-meta">
                   <span className="chip">{s.durationMin} min</span>
-                  <span className="price">{s.price}</span>
+                  <span className={s.price.startsWith("Precio") ? "price tbd" : "price"}>{s.price}</span>
                 </span>
               </button>
             ))}

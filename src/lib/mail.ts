@@ -52,7 +52,7 @@ export async function notifyBooking(event: BookingEvent, b: BookingMail) {
       <h2>${titles[event]}</h2>
       <p><strong>${esc(b.service.name)}</strong> (${b.service.durationMin} min)</p>
       <p>${esc(fmtDateTime(b.start))}</p>
-      <p>Precio: ${money(b.priceCents)}</p>
+      <p>${b.priceCents ? `Precio: ${money(b.priceCents)}` : "Precio a consultar"}</p>
       <p>Folio: <code>${b.id}</code></p>
       ${event !== "cancelled" ? `<p><a href="${link}">Ver, reagendar o cancelar</a></p>` : ""}
     </div>`;
