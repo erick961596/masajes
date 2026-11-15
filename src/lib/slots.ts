@@ -35,7 +35,7 @@ export async function availableSlots(dateStr: string, durationMin: number, exclu
   const [bookings, blocks] = await Promise.all([
     db.booking.findMany({
       where: {
-        status: "CONFIRMED",
+        status: { in: ["CONFIRMED", "COMPLETED"] },
         start: { lt: dayEnd },
         end: { gt: dayStart },
         ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),

@@ -4,7 +4,7 @@ import { es } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { config } from "@/lib/config";
-import { fmtDateTime, fmtTime, money } from "@/lib/format";
+import { fmtDateTime, fmtTime, money, statusBadge } from "@/lib/format";
 
 export const metadata = { title: "Mis citas" };
 
@@ -61,7 +61,7 @@ export default async function AccountPage() {
                     <td className="capitalize muted">{fmtDateTime(b.start)}</td>
                     <td>
                       <Link href={`/reserva/${b.id}`}>
-                        <span className={`badge ${b.status === "CANCELLED" ? "cancelled" : "past"}`}>{b.status === "CANCELLED" ? "Cancelada" : "Realizada"}</span>
+                        <span className={`badge ${statusBadge(b.status, b.start)[0]}`}>{statusBadge(b.status, b.start)[1]}</span>
                       </Link>
                     </td>
                   </tr>

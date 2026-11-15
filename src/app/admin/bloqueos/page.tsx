@@ -1,86 +1,62 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
-import { config } from "@/lib/config";
 import { todayStr } from "@/lib/slots";
 import { Notice } from "@/components/Notice";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { BlockForm } from "@/components/BlockForm";
 import { SP, str } from "@/lib/params";
-import { addBlock, deleteBlock } from "../actions";
+import { deleteBlock } from "../actions";
+
+export const metadata = { title: "Bloqueos" };
 
 export default async function BlocksAdmin({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const blocks = await db.blockedTime.findMany({ where: { end: { gt: new Date() } }, orderBy: { start: "asc" } });
-  const today = todayStr();
+  const counts = await Promise.all(
+    blocks.map((b) => db.booking.count({ where: { status: "CONFIRMED", start: { lt: b.end }, end: { gt: b.start } } })),
+  );
   return (
     <>
       <Notice error={str(sp.error)} ok={str(sp.ok)} />
-      <div className="page-head">
-        <h1>Bloqueos</h1>
-        <p className="muted">
-          Vacaciones, festivos o pendientes. Deja las horas vacías para bloquear días completos. Zona {config.tz}. Las citas ya hechas no se cancelan solas.
-        </p>
+      <div className="admin-head">
+        <div>
+          <h1>Bloqueos</h1>
+          <p className="muted">Vacaciones, feriados o pendientes. Si ya hay citas en ese rango te avisamos y decides si cancelarlas.</p>
+        </div>
       </div>
-      <form action={addBlock} className="card">
-        <h3>Nuevo bloqueo</h3>
-        <div className="row">
-          <label className="field">
-            <span>Desde el día</span>
-            <input type="date" name="startDate" defaultValue={today} required />
-          </label>
-          <label className="field">
-            <span>Hora (opcional)</span>
-            <input type="time" name="startTime" />
-          </label>
-          <label className="field">
-            <span>Hasta el día</span>
-            <input type="date" name="endDate" />
-          </label>
-          <label className="field">
-            <span>Hora (opcional)</span>
-            <input type="time" name="endTime" />
-          </label>
+      <div className="split">
+        <BlockForm today={todayStr()} />
+        <div>
+          <h3 className="list-title">Próximos bloqueos</h3>
+          {blocks.length === 0 ? (
+            <div className="card empty">
+              <p className="muted">No hay bloqueos próximos.</p>
+            </div>
+          ) : (
+            blocks.map((b, i) => (
+              <div key={b.id} className="card item-card">
+                <div className="item-main">
+                  <strong>{b.reason || "Bloqueo"}</strong>
+                  <span className="muted small capitalize">Desde {fmtDateTime(b.start)}</span>
+                  <span className="muted small capitalize">Hasta {fmtDateTime(b.end)}</span>
+                  {counts[i] > 0 && (
+                    <Link href={`/admin/reservas?vista=todas&estado=CONFIRMED&desde=${b.start.toISOString().slice(0, 10)}`} className="badge warn">
+                      ⚠ {counts[i]} cita(s) dentro
+                    </Link>
+                  )}
+                </div>
+                <form action={deleteBlock}>
+                  <input type="hidden" name="id" value={b.id} />
+                  <ConfirmButton className="btn ghost small" title="¿Quitar este bloqueo?" text="Esos horarios volverán a estar disponibles." confirmText="Quitar">
+                    Quitar
+                  </ConfirmButton>
+                </form>
+              </div>
+            ))
+          )}
         </div>
-        <label className="field">
-          <span>Motivo</span>
-          <input name="reason" placeholder="Vacaciones, curso…" />
-        </label>
-        <button className="btn">Agregar bloqueo</button>
-      </form>
-      {blocks.length === 0 ? (
-        <div className="card empty">
-          <p className="muted">No hay bloqueos próximos.</p>
-        </div>
-      ) : (
-        <div className="card table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Desde</th>
-                <th>Hasta</th>
-                <th>Motivo</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {blocks.map((b) => (
-                <tr key={b.id}>
-                  <td className="capitalize">{fmtDateTime(b.start)}</td>
-                  <td className="capitalize">{fmtDateTime(b.end)}</td>
-                  <td>{b.reason}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <form action={deleteBlock}>
-                      <input type="hidden" name="id" value={b.id} />
-                      <ConfirmButton className="icon" title="¿Quitar este bloqueo?" text="Esos horarios volverán a estar disponibles." confirmText="Quitar">
-                        ✕
-                      </ConfirmButton>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </div>
     </>
   );
 }
