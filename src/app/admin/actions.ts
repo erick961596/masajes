@@ -10,7 +10,7 @@ import { config } from "@/lib/config";
 import { DAYS, fmtDateTime, fmtTime, hhmmToMin, minToHhmm, PAYMENT_METHODS } from "@/lib/format";
 import { localToUtc, DATE_RE } from "@/lib/slots";
 import { bookingInclude } from "@/lib/bookings";
-import { notifyBooking, send, mailMode } from "@/lib/mail";
+import { notifyBooking, send } from "@/lib/mail";
 
 function back(path: string, error: string): never {
   redirect(`${path}?error=${encodeURIComponent(error)}`);
@@ -256,7 +256,8 @@ export async function sendTestMail(to: string): Promise<{ ok: boolean; error?: s
   await requireAdmin();
   const email = z.string().trim().email().safeParse(to);
   if (!email.success) return { ok: false, error: "Correo inválido" };
-  if (mailMode().mode === "off") return { ok: false, error: "Falta configurar SMTP_HOST en las variables de entorno" };
   const when = formatInTimeZone(new Date(), config.tz, "dd/MM/yyyy HH:mm");
-  return send(email.data, `Correo de prueba · ${config.businessName}`, `<p>¡Funciona! 🎉</p><p>Este es un correo de prueba enviado el ${when}.</p>`);
+  const r = await send(email.data, `Correo de prueba · ${config.businessName}`, `<p>¡Funciona! 🎉</p><p>Este es un correo de prueba enviado el ${when}.</p>`);
+  revalidatePath("/admin/correo");
+  return r;
 }

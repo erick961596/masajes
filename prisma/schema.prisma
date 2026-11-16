@@ -80,3 +80,17 @@ model Booking {
   @@index([start])
   @@index([userId])
 }
+
+/// Registro de correos enviados (con enlace de vista previa cuando se usa Ethereal).
+model MailLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  to         String
+  subject    String
+  ok         Boolean
+  via        String
+  previewUrl String?
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}

@@ -2,59 +2,61 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { config } from "./config";
 import { fmtDateTime, money } from "./format";
+import { db } from "./db";
 
 /**
- * SMTP_HOST="ethereal" crea sola una cuenta de prueba en ethereal.email (no entrega correos reales:
- * cada envío deja un enlace de vista previa en los logs y en /admin/correo).
- * Cualquier otro host (Mailtrap Sandbox, Brevo, Gmail…) se usa tal cual.
+ * Modo prueba: SIEMPRE se usa Ethereal (ethereal.email), sin registro ni variables de entorno.
+ * La app crea sola una cuenta de prueba; Ethereal NO entrega correos reales: cada envío genera
+ * un enlace de vista previa que queda guardado en Admin → Correo (tabla MailLog).
+ * Las variables SMTP_* se ignoran por ahora.
  */
-let cached: Promise<Transporter | null> | null = null;
+let cachedEthereal: Promise<Transporter | null> | null = null;
 
 export function mailMode() {
-  const host = (process.env.SMTP_HOST || "").trim();
-  if (!host) return { mode: "off" as const, host: "" };
-  if (host.toLowerCase() === "ethereal") return { mode: "ethereal" as const, host: "smtp.ethereal.email" };
-  return { mode: "smtp" as const, host };
+  return { mode: "ethereal" as const, host: "smtp.ethereal.email" };
 }
 
-function transport() {
-  if (cached) return cached;
-  const { mode, host } = mailMode();
-  cached = (async () => {
-    if (mode === "off") return null;
-    if (mode === "ethereal") {
-      const acc = await nodemailer.createTestAccount();
-      console.info(`[mail] cuenta Ethereal de prueba: ${acc.user} / ${acc.pass} (entra en https://ethereal.email/login)`);
+function ethereal() {
+  cachedEthereal ??= nodemailer
+    .createTestAccount()
+    .then((acc) => {
+      console.info(`[mail] cuenta Ethereal de prueba: ${acc.user} (https://ethereal.email/login)`);
       return nodemailer.createTransport({ host: acc.smtp.host, port: acc.smtp.port, secure: acc.smtp.secure, auth: { user: acc.user, pass: acc.pass } });
-    }
-    const port = Number(process.env.SMTP_PORT || 587);
-    return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
-  })().catch((err) => {
-    console.error("[mail] no se pudo preparar el SMTP", err);
-    cached = null;
-    return null;
-  });
-  return cached;
+    })
+    .catch((err) => {
+      console.error("[mail] no se pudo crear la cuenta de Ethereal", err);
+      cachedEthereal = null;
+      return null;
+    });
+  return cachedEthereal;
 }
 
-export type SendResult = { ok: boolean; previewUrl?: string; error?: string };
+export type SendResult = { ok: boolean; previewUrl?: string; error?: string; via?: string };
 
-export async function send(to: string, subject: string, html: string): Promise<SendResult> {
-  const t = await transport();
-  if (!t) {
-    console.warn(`[mail] SMTP no configurado, no se envió: ${subject} -> ${to}`);
-    return { ok: false, error: "SMTP no configurado" };
-  }
+async function attempt(t: Transporter | null, via: string, msg: { to: string; subject: string; html: string }): Promise<SendResult> {
+  if (!t) return { ok: false, via, error: via === "ethereal" ? "No se pudo conectar con Ethereal" : "SMTP no disponible" };
   try {
-    const info = await t.sendMail({ from: process.env.MAIL_FROM || `${config.businessName} <reservas@anispa.test>`, to, subject, html });
+    const info = await t.sendMail({ from: process.env.MAIL_FROM || `${config.businessName} <reservas@anispa.test>`, ...msg });
     const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
     if (previewUrl) console.info(`[mail] vista previa: ${previewUrl}`);
-    return { ok: true, previewUrl };
+    return { ok: true, previewUrl, via };
   } catch (err) {
-    // Un fallo de correo no debe romper la reserva.
-    console.error("[mail] error al enviar", err);
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    console.error(`[mail] error al enviar por ${via}`, err);
+    return { ok: false, via, error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/** Envía un correo. Nunca lanza: un fallo de correo no debe romper la reserva. Queda registrado en MailLog. */
+export async function send(to: string, subject: string, html: string): Promise<SendResult> {
+  const r = await attempt(await ethereal(), "ethereal", { to, subject, html });
+  try {
+    await db.mailLog.create({
+      data: { to, subject: subject.slice(0, 300), ok: r.ok, previewUrl: r.previewUrl ?? null, error: r.error?.slice(0, 500) ?? null, via: r.via ?? "ethereal" },
+    });
+  } catch (err) {
+    console.error("[mail] no se pudo guardar el registro", err);
+  }
+  return r;
 }
 
 type BookingMail = {
