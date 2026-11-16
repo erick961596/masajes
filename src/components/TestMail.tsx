@@ -18,7 +18,7 @@ export function TestMail({ defaultTo }: { defaultTo: string }) {
           swal.fire({
             icon: "success",
             title: "Correo enviado",
-            html: r.previewUrl ? `Míralo aquí: <a href="${r.previewUrl}" target="_blank" rel="noreferrer">abrir vista previa</a>` : "Revisa la bandeja de entrada (o tu inbox de Mailtrap).",
+            html: r.previewUrl ? `Míralo aquí: <a href="${r.previewUrl}" target="_blank" rel="noreferrer">abrir vista previa</a>` : "Revisa la bandeja de entrada.",
             confirmButtonText: "Listo",
           });
         });

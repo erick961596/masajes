@@ -6,7 +6,7 @@ App web para reservar sesiones de masaje y otros servicios.
 - **Admin** (apto para celular): agenda semanal, gestión completa de reservas (buscar, filtrar, crear para un cliente, editar, reagendar, cancelar, estados Confirmada / Realizada / No asistió / Cancelada, método de pago), clientes, dashboard de ganancias (día, semana, mes, año o rango; por servicio, método de pago, día y cliente), servicios con precio en colones, horario semanal y bloqueos que avisan si ya hay citas en ese rango.
 - Los clientes creados por el admin no tienen contraseña: cuando se registran con su mismo correo, reclaman la cuenta y ven sus citas.
 - Cada reserva tiene un **UUID** (folio) y una página `/reserva/<uuid>`.
-- **Correos** (Nodemailer por SMTP, pensado para Mailtrap) al cliente y al admin al crear, reagendar y cancelar.
+- **Correos** (Nodemailer; por ahora en modo prueba con Ethereal) al cliente y al admin al crear, reagendar y cancelar.
 - Se asume una sola persona atendiendo: dos reservas no pueden encimarse, aunque sean de servicios distintos. La comprobación se hace en una transacción serializable.
 
 Stack: Next.js 16 (App Router, TypeScript), Prisma 6 + Postgres, sesiones con cookie firmada (jose) y bcrypt.
@@ -37,9 +37,9 @@ El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como admi
 | `APP_URL` | `https://tu-subdominio.tudominio.com` |
 | `BUSINESS_TZ` | p. ej. `America/Costa_Rica` (por defecto) |
 | `CURRENCY` | opcional, por defecto `CRC` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | credenciales SMTP (Mailtrap Sandbox para pruebas). Con `SMTP_HOST="ethereal"` se crea sola una cuenta de prueba de Ethereal |
+| `SMTP_*` | se ignoran por ahora: el correo usa siempre Ethereal (modo prueba, sin registro) |
 | `MAIL_FROM` | remitente, p. ej. `Masajes <reservas@tudominio.com>` (en Mailtrap Sending el dominio debe estar verificado) |
 
 4. Subdominio: *Domain management → Add a domain* → `citas.tudominio.com`. En tu DNS crea un `CNAME` de `citas` a `<tu-sitio>.netlify.app`. Netlify emite el certificado HTTPS solo.
 
-Si SMTP no está configurado, la app funciona igual y deja el aviso en los logs en lugar de enviar el correo. En **Admin → Correo** puedes enviar un correo de prueba.
+Modo prueba: todos los correos se envían a una cuenta de Ethereal creada automáticamente (no llegan a nadie). En **Admin → Correo** ves cada correo enviado con su enlace “Ver correo” y puedes mandar uno de prueba.

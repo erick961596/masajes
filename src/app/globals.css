@@ -467,3 +467,7 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .pill-radio input, .switch input, .day-checks input { width: 1px; height: 1px; margin: 0; padding: 0; }
 .form-footer.static { position: static; }
+.mail-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; }
+.mail-row + .mail-row { border-top: 1px solid var(--border); }
+.mail-subject { font-size: 0.95rem; overflow-wrap: anywhere; }
+.error-text { color: var(--danger); }

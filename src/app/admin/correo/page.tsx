@@ -1,5 +1,7 @@
+import { formatInTimeZone } from "date-fns-tz";
 import { mailMode } from "@/lib/mail";
 import { config } from "@/lib/config";
+import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { TestMail } from "@/components/TestMail";
 
@@ -8,7 +10,8 @@ export const metadata = { title: "Correo" };
 export default async function MailAdmin() {
   const admin = await requireAdmin();
   const { mode, host } = mailMode();
-  const label = { off: ["cancelled", "Sin configurar"], ethereal: ["warn", "Modo prueba (Ethereal)"], smtp: ["", "Conectado"] }[mode];
+  const label = ["warn", mode === "ethereal" ? "Modo prueba (Ethereal)" : mode];
+  const logs = await db.mailLog.findMany({ orderBy: { createdAt: "desc" }, take: 40 });
   return (
     <div className="medium">
       <div className="admin-head">
@@ -25,16 +28,36 @@ export default async function MailAdmin() {
           </dd>
           <dt>Servidor</dt>
           <dd>{host || "—"}</dd>
-          <dt>Remitente</dt>
-          <dd>{process.env.MAIL_FROM || "—"}</dd>
         </dl>
-        {mode === "ethereal" && (
-          <p className="muted small">
-            Ethereal no entrega correos reales: cada envío genera un enlace de vista previa (te lo mostramos al enviar y queda en los logs).
+        {(
+          <p className="muted small" style={{ marginTop: 12 }}>
+            Por ahora todos los correos van a una cuenta de prueba de Ethereal y <strong>no llegan a nadie</strong>. Abre cada uno desde la lista de abajo con “Ver correo”.
           </p>
         )}
-        {mode === "off" && <p className="muted small">Agrega SMTP_HOST y compañía en las variables de entorno. Con SMTP_HOST=&quot;ethereal&quot; funciona sin crear cuenta.</p>}
         <TestMail defaultTo={admin.email} />
+      </div>
+
+      <h3 className="list-title">Últimos correos</h3>
+      <div className="card list-card">
+        {logs.length === 0 && <p className="muted empty">Aún no se ha enviado ningún correo.</p>}
+        {logs.map((l) => (
+          <div key={l.id} className="mail-row">
+            <div className="client-main">
+              <strong className="mail-subject">{l.subject}</strong>
+              <span className="muted small">
+                Para {l.to} · {formatInTimeZone(l.createdAt, config.tz, "dd/MM HH:mm")}
+              </span>
+              {l.error && <span className={`small ${l.ok ? "muted" : "error-text"}`}>{l.error}</span>}
+            </div>
+            {l.previewUrl ? (
+              <a className="btn ghost small" href={l.previewUrl} target="_blank" rel="noreferrer">
+                Ver correo
+              </a>
+            ) : (
+              <span className={`badge ${l.ok ? "" : "cancelled"}`}>{l.ok ? "Enviado" : "Falló"}</span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
