@@ -36,16 +36,21 @@ export async function registerAccount(input: Record<string, unknown>): Promise<R
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const { name, email, phone, password } = parsed.data;
-  if (await db.user.findUnique({ where: { email } })) return { ok: false, error: "Ese correo ya tiene cuenta. Entra con tu contraseña." };
-  const user = await db.user.create({
-    data: {
-      name,
-      email,
-      phone: phone || null,
-      passwordHash: await bcrypt.hash(password, 10),
-      role: config.adminEmail && email === config.adminEmail ? "ADMIN" : "CLIENT",
-    },
-  });
+  const existing = await db.user.findUnique({ where: { email } });
+  if (existing?.passwordHash) return { ok: false, error: "Ese correo ya tiene cuenta. Entra con tu contraseña." };
+  const passwordHash = await bcrypt.hash(password, 10);
+  // Si el admin ya había creado al cliente (sin contraseña), la persona "reclama" su cuenta y ve sus citas.
+  const user = existing
+    ? await db.user.update({ where: { id: existing.id }, data: { name, phone: phone || existing.phone, passwordHash } })
+    : await db.user.create({
+        data: {
+          name,
+          email,
+          phone: phone || null,
+          passwordHash,
+          role: config.adminEmail && email === config.adminEmail ? "ADMIN" : "CLIENT",
+        },
+      });
   await createSession(user.id);
   return { ok: true, user: { name: user.name, email: user.email, role: user.role } };
 }
@@ -53,7 +58,10 @@ export async function registerAccount(input: Record<string, unknown>): Promise<R
 export async function loginAccount(input: { email?: string; password?: string }): Promise<Result<{ user: PublicUser }>> {
   const email = String(input.email || "").trim().toLowerCase();
   const user = await db.user.findUnique({ where: { email } });
-  if (!user || !(await bcrypt.compare(String(input.password || ""), user.passwordHash))) {
+  if (user && !user.passwordHash) {
+    return { ok: false, error: "Tu cuenta fue creada en el spa. Regístrate con este mismo correo para crear tu contraseña y ver tus citas." };
+  }
+  if (!user || !user.passwordHash || !(await bcrypt.compare(String(input.password || ""), user.passwordHash))) {
     return { ok: false, error: "Correo o contraseña incorrectos" };
   }
   await createSession(user.id);

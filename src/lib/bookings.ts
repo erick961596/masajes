@@ -21,7 +21,7 @@ export async function reserveSlot(opts: {
       async (tx) => {
         const clash = await tx.booking.count({
           where: {
-            status: "CONFIRMED",
+            status: { in: ["CONFIRMED", "COMPLETED"] },
             start: { lt: end },
             end: { gt: opts.start },
             ...(opts.excludeBookingId ? { id: { not: opts.excludeBookingId } } : {}),

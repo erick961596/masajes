@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { fmtDateTime, money } from "@/lib/format";
+import { fmtDateTime, money, statusBadge } from "@/lib/format";
 import { SP, str } from "@/lib/params";
 import { Notice } from "@/components/Notice";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -25,13 +25,13 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   if (!b || (b.userId !== user.id && user.role !== "ADMIN")) notFound();
   const upcoming = b.start > new Date();
   const editable = b.status === "CONFIRMED" && upcoming;
-  const badge = b.status === "CANCELLED" ? ["cancelled", "Cancelada"] : upcoming ? ["", "Confirmada"] : ["past", "Realizada"];
+  const badge = statusBadge(b.status, b.start, user.role === "ADMIN");
 
   return (
     <div className="medium">
       <Notice error={str(sp.error)} ok={okMsg[str(sp.ok) || ""]} />
       <p>
-        <Link href={user.role === "ADMIN" && b.userId !== user.id ? "/admin" : "/cuenta"}>← Volver</Link>
+        <Link href={user.role === "ADMIN" && b.userId !== user.id ? "/admin/reservas" : "/cuenta"}>← Volver</Link>
       </p>
       <div className="card booking-hero">
         <span>
