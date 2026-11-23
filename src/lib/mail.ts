@@ -5,15 +5,36 @@ import { fmtDateTime, money } from "./format";
 import { db } from "./db";
 
 /**
- * Modo prueba: SIEMPRE se usa Ethereal (ethereal.email), sin registro ni variables de entorno.
- * La app crea sola una cuenta de prueba; Ethereal NO entrega correos reales: cada envío genera
- * un enlace de vista previa que queda guardado en Admin → Correo (tabla MailLog).
- * Las variables SMTP_* se ignoran por ahora.
+ * Correo vía Mailtrap (SMTP).
+ * - MAILTRAP_TOKEN: el API token de Mailtrap. Con él se usa Mailtrap Email Sending
+ *   (live.smtp.mailtrap.io:587, usuario "api"). MAIL_FROM debe ser de un dominio verificado en Mailtrap.
+ * - SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS: opcionales, para usar otro servidor
+ *   (p. ej. el Sandbox de Mailtrap: sandbox.smtp.mailtrap.io:2525 con el usuario/contraseña del inbox).
+ * - Sin token ni SMTP_PASS: modo prueba con Ethereal (cuenta automática, los correos no llegan a nadie).
  */
 let cachedEthereal: Promise<Transporter | null> | null = null;
+let cachedSmtp: Transporter | null = null;
+
+function smtpSettings() {
+  const pass = process.env.SMTP_PASS || process.env.MAILTRAP_TOKEN;
+  if (!pass) return null;
+  const host = process.env.SMTP_HOST || "live.smtp.mailtrap.io";
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const user = process.env.SMTP_USER || "api";
+  return { host, port, user, pass, secure: port === 465 };
+}
 
 export function mailMode() {
-  return { mode: "ethereal" as const, host: "smtp.ethereal.email" };
+  const s = smtpSettings();
+  if (!s) return { mode: "ethereal" as const, host: "smtp.ethereal.email" };
+  return { mode: s.host.includes("mailtrap") ? ("mailtrap" as const) : ("smtp" as const), host: `${s.host}:${s.port}` };
+}
+
+function smtp() {
+  const s = smtpSettings();
+  if (!s) return null;
+  cachedSmtp ??= nodemailer.createTransport({ host: s.host, port: s.port, secure: s.secure, auth: { user: s.user, pass: s.pass } });
+  return cachedSmtp;
 }
 
 function ethereal() {
@@ -48,10 +69,11 @@ async function attempt(t: Transporter | null, via: string, msg: { to: string; su
 
 /** Envía un correo. Nunca lanza: un fallo de correo no debe romper la reserva. Queda registrado en MailLog. */
 export async function send(to: string, subject: string, html: string): Promise<SendResult> {
-  const r = await attempt(await ethereal(), "ethereal", { to, subject, html });
+  const { mode } = mailMode();
+  const r = mode === "ethereal" ? await attempt(await ethereal(), "ethereal", { to, subject, html }) : await attempt(smtp(), mode, { to, subject, html });
   try {
     await db.mailLog.create({
-      data: { to, subject: subject.slice(0, 300), ok: r.ok, previewUrl: r.previewUrl ?? null, error: r.error?.slice(0, 500) ?? null, via: r.via ?? "ethereal" },
+      data: { to, subject: subject.slice(0, 300), ok: r.ok, previewUrl: r.previewUrl ?? null, error: r.error?.slice(0, 500) ?? null, via: r.via ?? mode },
     });
   } catch (err) {
     console.error("[mail] no se pudo guardar el registro", err);
