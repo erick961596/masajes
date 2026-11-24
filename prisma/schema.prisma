@@ -94,3 +94,10 @@ model MailLog {
 
   @@index([createdAt])
 }
+
+/// Ajustes del negocio editables desde Admin → Configuración (clave/valor).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

@@ -15,27 +15,25 @@ export type RowBooking = {
   user: { name: string; email: string; phone: string | null };
 };
 
-/** Fila de reserva para el admin: tarjeta en celular, fila de tabla en escritorio. */
+/** Fila de reserva para el admin: una línea en escritorio, dos en celular. */
 export function BookingRow({ b, showDate = false }: { b: RowBooking; showDate?: boolean }) {
   const [cls, label] = statusBadge(b.status, b.start, true);
   return (
-    <Link href={`/admin/reservas/${b.id}`} className={`bk-row ${b.status === "CANCELLED" ? "is-cancelled" : ""}`}>
-      <div className="bk-when">
-        {showDate && <span className="bk-date capitalize">{formatInTimeZone(b.start, config.tz, "EEE d MMM", { locale: es }).replace(/\./g, "")}</span>}
+    <Link href={`/admin/reservas/${b.id}`} className={`bk-row ${showDate ? "with-date" : ""} ${b.status === "CANCELLED" ? "is-cancelled" : ""}`}>
+      {showDate && <span className="bk-date capitalize">{formatInTimeZone(b.start, config.tz, "EEE dd/MM", { locale: es }).replace(/\./g, "")}</span>}
+      <span className="bk-when">
         <strong>{fmtTime(b.start)}</strong>
-        <span className="muted">{fmtTime(b.end)}</span>
-      </div>
-      <div className="bk-main">
-        <span className="bk-service">{b.service.name}</span>
-        <span className="bk-client">
-          {b.user.name}
-          {b.user.phone ? <span className="muted"> · {b.user.phone}</span> : null}
-        </span>
-      </div>
-      <div className="bk-side">
-        <span className="bk-price">{colones(b.priceCents)}</span>
+        <span className="muted">–{fmtTime(b.end)}</span>
+      </span>
+      <span className="bk-service">{b.service.name}</span>
+      <span className="bk-client">
+        {b.user.name}
+        {b.user.phone ? <span className="muted"> · {b.user.phone}</span> : null}
+      </span>
+      <span className="bk-price">{colones(b.priceCents)}</span>
+      <span className="bk-status">
         <span className={`badge ${cls}`}>{label}</span>
-      </div>
+      </span>
     </Link>
   );
 }

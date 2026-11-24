@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { config } from "@/lib/config";
-import { ChatBubble } from "@/components/ChatBubble";
 import { SocialIcon } from "@/components/SocialIcon";
 import { logout } from "./actions";
 import "./globals.css";
@@ -19,17 +18,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=DM+Sans:wght@400;500;600&display=swap"
-        />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400&display=swap" />
       </head>
       <body>
         <header className="top">
           <div className="top-inner">
             <Link href="/" className="brand">
               <span className="brand-mark" aria-hidden>
-                ❀
+                AS
               </span>
               {config.businessName}
             </Link>
@@ -54,28 +50,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main>{children}</main>
         <footer className="foot">
           <div className="foot-inner">
-            <div>
-              <div className="brand">
-                <span className="brand-mark" aria-hidden>
-                  ❀
-                </span>
-                {config.businessName}
-              </div>
-              <p className="muted">Masajes y terapias para tu bienestar.</p>
-            </div>
-            <div className="foot-social">
-              {config.social.map((s) => (
-                <a key={s.name} href={s.url} target="_blank" rel="noreferrer" aria-label={s.name} title={`${s.name} ${s.handle}`}>
-                  <SocialIcon name={s.name} />
-                </a>
-              ))}
-            </div>
+            <span>
+              © {new Date().getFullYear()} {config.businessName}
+            </span>
+            <a href={config.whatsapp.url} target="_blank" rel="noreferrer" className="wa-link">
+              <SocialIcon name="WhatsApp" size={16} /> {config.whatsapp.number}
+            </a>
           </div>
-          <p className="foot-copy">
-            © {new Date().getFullYear()} {config.businessName} · Todos los derechos reservados
-          </p>
         </footer>
-        <ChatBubble businessName={config.businessName} social={config.social} />
+        <a href={config.whatsapp.url} target="_blank" rel="noreferrer" className="wa-fab" aria-label={`WhatsApp ${config.whatsapp.number}`}>
+          <SocialIcon name="WhatsApp" size={20} />
+          <span>WhatsApp</span>
+        </a>
       </body>
     </html>
   );

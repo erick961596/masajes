@@ -9,6 +9,8 @@ App web para reservar sesiones de masaje y otros servicios.
 - **Correos** (Nodemailer por SMTP de Mailtrap; sin token cae a modo prueba con Ethereal) al cliente y al admin al crear, reagendar y cancelar.
 - Se asume una sola persona atendiendo: dos reservas no pueden encimarse, aunque sean de servicios distintos. La comprobación se hace en una transacción serializable.
 
+Contacto: solo WhatsApp (`config.whatsapp` en `src/lib/config.ts`, +506 8435 4520): enlace en el pie de página y botón flotante.
+
 Stack: Next.js 16 (App Router, TypeScript), Prisma 6 + Postgres, sesiones con cookie firmada (jose) y bcrypt.
 
 ## Desarrollo local
@@ -20,7 +22,7 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como administrador. Después entra a **Admin → Horarios** y **Servicios** para que los clientes vean horarios disponibles.
+El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como administrador. Desde **Admin → Usuarios** puede crear más admins (con contraseña) o clientes, cambiar roles y contraseñas. Después entra a **Admin → Horarios** y **Servicios** para que los clientes vean horarios disponibles.
 
 ## Desplegar en Netlify
 
@@ -43,4 +45,4 @@ El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como admi
 
 4. Subdominio: *Domain management → Add a domain* → `citas.tudominio.com`. En tu DNS crea un `CNAME` de `citas` a `<tu-sitio>.netlify.app`. Netlify emite el certificado HTTPS solo.
 
-Correo: con `MAILTRAP_TOKEN` los correos salen de verdad por Mailtrap. Sin token, van a una cuenta de prueba de Ethereal (no llegan a nadie). En **Admin → Correo** ves el estado, cada envío (y su error si falló) y puedes mandar uno de prueba.
+Correo: con `MAILTRAP_TOKEN` los correos salen de verdad por Mailtrap. Sin token, van a una cuenta de prueba de Ethereal (no llegan a nadie). En **Admin → Configuración** eliges qué correos reciben copia de cada reserva (separados por coma; si no guardas nada se usa `ADMIN_EMAIL`), ves el estado del envío, cada envío (y su error si falló) y puedes mandar uno de prueba.

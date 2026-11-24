@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -11,6 +12,7 @@ import { DAYS, fmtDateTime, fmtTime, hhmmToMin, minToHhmm, PAYMENT_METHODS } fro
 import { localToUtc, DATE_RE } from "@/lib/slots";
 import { bookingInclude } from "@/lib/bookings";
 import { notifyBooking, send } from "@/lib/mail";
+import { NOTIFY_EMAILS, parseEmailList, setSetting } from "@/lib/settings";
 
 function back(path: string, error: string): never {
   redirect(`${path}?error=${encodeURIComponent(error)}`);
@@ -258,6 +260,92 @@ export async function sendTestMail(to: string): Promise<{ ok: boolean; error?: s
   if (!email.success) return { ok: false, error: "Correo inválido" };
   const when = formatInTimeZone(new Date(), config.tz, "dd/MM/yyyy HH:mm");
   const r = await send(email.data, `Correo de prueba · ${config.businessName}`, `<p>¡Funciona! 🎉</p><p>Este es un correo de prueba enviado el ${when}.</p>`);
-  revalidatePath("/admin/correo");
+  revalidatePath("/admin/configuracion");
   return r;
+}
+
+// ---------- Usuarios ----------
+
+const userSchema = z.object({
+  name: z.string().trim().min(2, "Escribe el nombre"),
+  email: z.string().trim().toLowerCase().email("Correo inválido"),
+  phone: z.string().trim().max(30).optional(),
+  role: z.enum(["ADMIN", "CLIENT"]),
+  password: z.string().optional(),
+});
+
+export type UserInput = z.input<typeof userSchema>;
+type Res = { ok: true; message: string } | { ok: false; error: string };
+
+function checkPassword(p: string | undefined) {
+  if (!p) return null;
+  return p.length >= 8 ? null : "La contraseña debe tener al menos 8 caracteres";
+}
+
+export async function createUser(raw: UserInput): Promise<Res> {
+  await requireAdmin();
+  const parsed = userSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const { name, email, phone, role, password } = parsed.data;
+  const pwErr = checkPassword(password);
+  if (pwErr) return { ok: false, error: pwErr };
+  const existing = await db.user.findUnique({ where: { email } });
+  if (existing) {
+    return {
+      ok: false,
+      error: existing.role === role ? "Ya existe un usuario con ese correo." : `Ya existe como ${existing.role === "ADMIN" ? "admin" : "cliente"}. Cámbiale el rol desde la lista.`,
+    };
+  }
+  await db.user.create({
+    data: { name, email, phone: phone || null, role, passwordHash: password ? await bcrypt.hash(password, 10) : null },
+  });
+  revalidatePath("/admin", "layout");
+  return {
+    ok: true,
+    message: password
+      ? `${name} ya puede entrar con ${email} y la contraseña que le pusiste.`
+      : `${name} debe registrarse con ${email} para crear su contraseña.`,
+  };
+}
+
+export async function setUserRole(id: string, role: "ADMIN" | "CLIENT"): Promise<Res> {
+  const me = await requireAdmin();
+  if (role !== "ADMIN" && role !== "CLIENT") return { ok: false, error: "Rol inválido" };
+  if (id === me.id && role !== "ADMIN") return { ok: false, error: "No puedes quitarte el rol de admin a ti mismo." };
+  const u = await db.user.update({ where: { id }, data: { role } }).catch(() => null);
+  if (!u) return { ok: false, error: "El usuario ya no existe" };
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: role === "ADMIN" ? `${u.name} ahora es admin` : `${u.name} ahora es cliente` };
+}
+
+export async function setUserPassword(id: string, password: string): Promise<Res> {
+  await requireAdmin();
+  const err = checkPassword(password) ?? (password ? null : "Escribe una contraseña");
+  if (err) return { ok: false, error: err };
+  const u = await db.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(password, 10) } }).catch(() => null);
+  if (!u) return { ok: false, error: "El usuario ya no existe" };
+  revalidatePath("/admin/usuarios");
+  return { ok: true, message: `Contraseña de ${u.name} actualizada` };
+}
+
+export async function deleteUser(id: string): Promise<Res> {
+  const me = await requireAdmin();
+  if (id === me.id) return { ok: false, error: "No puedes borrar tu propio usuario." };
+  const n = await db.booking.count({ where: { userId: id } });
+  if (n > 0) return { ok: false, error: `Tiene ${n} reserva(s); no se puede borrar. Si es admin, quítale el rol.` };
+  const u = await db.user.delete({ where: { id } }).catch(() => null);
+  if (!u) return { ok: false, error: "El usuario ya no existe" };
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: `${u.name} eliminado` };
+}
+
+// ---------- Configuración ----------
+
+export async function saveNotifyEmails(raw: string): Promise<Res> {
+  await requireAdmin();
+  const { valid, invalid } = parseEmailList(String(raw || ""));
+  if (invalid.length) return { ok: false, error: `Revisa: ${invalid.join(", ")}` };
+  await setSetting(NOTIFY_EMAILS, valid.join(", "));
+  revalidatePath("/admin/configuracion");
+  return { ok: true, message: valid.length ? `Las notificaciones llegarán a ${valid.length} correo(s)` : "Nadie del equipo recibirá copia de las reservas" };
 }
