@@ -117,8 +117,10 @@ export async function notifyBooking(event: BookingEvent, b: BookingMail): Promis
   const r = await send(b.user.email, subject, `<p>Hola ${esc(b.user.name)},</p>${body}`);
   // Copia al equipo: los correos de Admin → Configuración (o ADMIN_EMAIL si nunca se configuró).
   const team = (await getNotifyEmails()).filter((e) => e !== b.user.email.toLowerCase());
-  if (team.length) {
-    await send(team.join(", "), `[Admin] ${subject}`, `<p>Cliente: ${esc(b.user.name)} &lt;${esc(b.user.email)}&gt;</p>${body}`);
+  // Un correo por destinatario: si uno falla (p. ej. lo rechaza el proveedor), los demás igual salen,
+  // y en Admin → Configuración queda una línea por dirección con su resultado.
+  for (const to of team) {
+    await send(to, `[Admin] ${subject}`, `<p>Cliente: ${esc(b.user.name)} &lt;${esc(b.user.email)}&gt;</p>${body}`);
   }
   return r;
 }

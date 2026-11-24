@@ -12,7 +12,7 @@ import { DAYS, fmtDateTime, fmtTime, hhmmToMin, minToHhmm, PAYMENT_METHODS } fro
 import { localToUtc, DATE_RE } from "@/lib/slots";
 import { bookingInclude } from "@/lib/bookings";
 import { notifyBooking, send } from "@/lib/mail";
-import { NOTIFY_EMAILS, parseEmailList, setSetting } from "@/lib/settings";
+import { getNotifyEmails, NOTIFY_EMAILS, parseEmailList, setSetting } from "@/lib/settings";
 
 function back(path: string, error: string): never {
   redirect(`${path}?error=${encodeURIComponent(error)}`);
@@ -348,4 +348,17 @@ export async function saveNotifyEmails(raw: string): Promise<Res> {
   await setSetting(NOTIFY_EMAILS, valid.join(", "));
   revalidatePath("/admin/configuracion");
   return { ok: true, message: valid.length ? `Las notificaciones llegarán a ${valid.length} correo(s)` : "Nadie del equipo recibirá copia de las reservas" };
+}
+
+/** Manda un correo de prueba a cada dirección de la lista de notificaciones y devuelve el resultado de cada una. */
+export async function sendTestToTeam(): Promise<{ to: string; ok: boolean; error?: string; previewUrl?: string }[]> {
+  await requireAdmin();
+  const when = formatInTimeZone(new Date(), config.tz, "dd/MM/yyyy HH:mm");
+  const results = [];
+  for (const to of await getNotifyEmails()) {
+    const r = await send(to, `Prueba de notificaciones · ${config.businessName}`, `<p>Este correo está en la lista de notificaciones de reservas.</p><p>Enviado el ${when}.</p>`);
+    results.push({ to, ok: r.ok, error: r.error, previewUrl: r.previewUrl });
+  }
+  revalidatePath("/admin/configuracion");
+  return results;
 }
