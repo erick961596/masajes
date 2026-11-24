@@ -739,3 +739,23 @@ body:has(.admin) .wa-fab, body:has(.wizard) .wa-fab { display: none; }
 }
 .admin { align-content: start; }
 @media (min-width: 901px) { .admin-main { grid-row: 1; grid-column: 2; } }
+
+/* Celular: barra inferior tipo app + menú lateral */
+.admin-tabbar, .admin-drawer, .drawer-backdrop { display: none; }
+@media (max-width: 900px) {
+  .admin-nav { display: none; }
+  .admin-main { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .admin-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+  .admin-tabbar a, .admin-tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 2px; background: none; border: none; color: var(--muted); font: inherit; font-size: 0.72rem; font-weight: 500; text-decoration: none; cursor: pointer; }
+  .admin-tabbar .active { color: var(--primary); font-weight: 600; }
+  .admin-tabbar .active svg { stroke-width: 2.2; }
+  .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(0, 0, 0, 0.35); }
+  .admin-drawer { display: flex; flex-direction: column; gap: 18px; position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; width: min(300px, 84vw); padding: 14px 10px calc(14px + env(safe-area-inset-bottom)); overflow-y: auto; background: var(--surface); border-right: 1px solid var(--border); box-shadow: var(--shadow-pop); }
+  .admin-drawer[hidden] { display: none; }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 10px; }
+  .admin-drawer .nav-group { display: flex; flex-direction: column; gap: 1px; }
+  .admin-drawer .nav-group-label { display: block; }
+  .admin-drawer a { display: block; padding: 10px; border-radius: var(--r); color: var(--text); font-weight: 500; text-decoration: none; }
+  .admin-drawer a.active { background: var(--primary-soft); color: var(--primary-strong); font-weight: 600; box-shadow: inset 3px 0 0 var(--primary); }
+  body:has(.admin) .form-footer { bottom: calc(64px + env(safe-area-inset-bottom)); }
+}
