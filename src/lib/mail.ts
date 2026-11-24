@@ -3,6 +3,7 @@ import type { Transporter } from "nodemailer";
 import { config } from "./config";
 import { fmtDateTime, money } from "./format";
 import { db } from "./db";
+import { getNotifyEmails } from "./settings";
 
 /**
  * Correo vía Mailtrap (SMTP).
@@ -114,8 +115,10 @@ export async function notifyBooking(event: BookingEvent, b: BookingMail): Promis
     </div>`;
   const subject = `${titles[event]} · ${b.service.name} · ${fmtDateTime(b.start)}`;
   const r = await send(b.user.email, subject, `<p>Hola ${esc(b.user.name)},</p>${body}`);
-  if (config.adminEmail && config.adminEmail !== b.user.email) {
-    await send(config.adminEmail, `[Admin] ${subject}`, `<p>Cliente: ${esc(b.user.name)} &lt;${esc(b.user.email)}&gt;</p>${body}`);
+  // Copia al equipo: los correos de Admin → Configuración (o ADMIN_EMAIL si nunca se configuró).
+  const team = (await getNotifyEmails()).filter((e) => e !== b.user.email.toLowerCase());
+  if (team.length) {
+    await send(team.join(", "), `[Admin] ${subject}`, `<p>Cliente: ${esc(b.user.name)} &lt;${esc(b.user.email)}&gt;</p>${body}`);
   }
   return r;
 }

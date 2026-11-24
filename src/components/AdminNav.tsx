@@ -11,7 +11,8 @@ const LINKS: [string, string, string][] = [
   ["/admin/servicios", "Servicios", "💆"],
   ["/admin/horarios", "Horarios", "🕘"],
   ["/admin/bloqueos", "Bloqueos", "⛔"],
-  ["/admin/correo", "Correo", "✉️"],
+  ["/admin/usuarios", "Usuarios", "🔑"],
+  ["/admin/configuracion", "Configuración", "⚙️"],
 ];
 
 export function AdminNav() {

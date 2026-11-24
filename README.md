@@ -20,7 +20,7 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como administrador. Después entra a **Admin → Horarios** y **Servicios** para que los clientes vean horarios disponibles.
+El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como administrador. Desde **Admin → Usuarios** puede crear más admins (con contraseña) o clientes, cambiar roles y contraseñas. Después entra a **Admin → Horarios** y **Servicios** para que los clientes vean horarios disponibles.
 
 ## Desplegar en Netlify
 
@@ -43,4 +43,4 @@ El primer usuario que se registre con el correo de `ADMIN_EMAIL` queda como admi
 
 4. Subdominio: *Domain management → Add a domain* → `citas.tudominio.com`. En tu DNS crea un `CNAME` de `citas` a `<tu-sitio>.netlify.app`. Netlify emite el certificado HTTPS solo.
 
-Correo: con `MAILTRAP_TOKEN` los correos salen de verdad por Mailtrap. Sin token, van a una cuenta de prueba de Ethereal (no llegan a nadie). En **Admin → Correo** ves el estado, cada envío (y su error si falló) y puedes mandar uno de prueba.
+Correo: con `MAILTRAP_TOKEN` los correos salen de verdad por Mailtrap. Sin token, van a una cuenta de prueba de Ethereal (no llegan a nadie). En **Admin → Configuración** eliges qué correos reciben copia de cada reserva (separados por coma; si no guardas nada se usa `ADMIN_EMAIL`), ves el estado del envío, cada envío (y su error si falló) y puedes mandar uno de prueba.
