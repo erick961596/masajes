@@ -10,7 +10,7 @@ export const metadata = { title: "Correo" };
 export default async function MailAdmin() {
   const admin = await requireAdmin();
   const { mode, host } = mailMode();
-  const label = ["warn", mode === "ethereal" ? "Modo prueba (Ethereal)" : mode];
+  const label = mode === "ethereal" ? ["warn", "Modo prueba (Ethereal)"] : ["", mode === "mailtrap" ? "Mailtrap (envío real)" : "SMTP"];
   const logs = await db.mailLog.findMany({ orderBy: { createdAt: "desc" }, take: 40 });
   return (
     <div className="medium">
@@ -29,9 +29,13 @@ export default async function MailAdmin() {
           <dt>Servidor</dt>
           <dd>{host || "—"}</dd>
         </dl>
-        {(
+        {mode === "ethereal" ? (
           <p className="muted small" style={{ marginTop: 12 }}>
-            Por ahora todos los correos van a una cuenta de prueba de Ethereal y <strong>no llegan a nadie</strong>. Abre cada uno desde la lista de abajo con “Ver correo”.
+            No hay token de Mailtrap configurado (<code>MAILTRAP_TOKEN</code>), así que los correos van a una cuenta de prueba de Ethereal y <strong>no llegan a nadie</strong>. Ábrelos desde la lista de abajo con “Ver correo”.
+          </p>
+        ) : (
+          <p className="muted small" style={{ marginTop: 12 }}>
+            Los correos salen por Mailtrap desde <code>{process.env.MAIL_FROM || "MAIL_FROM"}</code>. Si un envío falla, el motivo aparece en la lista de abajo (lo más común: el dominio del remitente no está verificado en Mailtrap).
           </p>
         )}
         <TestMail defaultTo={admin.email} />
