@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { swal, toast } from "@/lib/swal";
-import { saveNotifyEmails } from "@/app/admin/actions";
+import { saveNotifyEmails, sendTestToTeam } from "@/app/admin/actions";
 
 const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
@@ -47,6 +47,31 @@ export function NotifyEmailsForm({ initial }: { initial: string }) {
         )}
       </div>
       <div className="form-actions">
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={pending || value !== initial || items.length === 0}
+          title={value !== initial ? "Guarda primero los cambios" : undefined}
+          onClick={() =>
+            start(async () => {
+              const res = await sendTestToTeam();
+              const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+              const list = res
+                .map((r) => `<li>${r.ok ? "✓" : "✗"} <strong>${esc(r.to)}</strong>${r.ok ? (r.previewUrl ? ` · <a href="${esc(r.previewUrl)}" target="_blank" rel="noreferrer">ver</a>` : "") : `<br><small>${esc(r.error || "Falló")}</small>`}</li>`)
+                .join("");
+              const bad = res.filter((r) => !r.ok).length;
+              swal.fire({
+                icon: bad ? "warning" : "success",
+                title: bad ? `${bad} de ${res.length} no se enviaron` : `Enviado a ${res.length} correo(s)`,
+                html: `<ul class="swal-list">${list}</ul>${bad ? '<p class="swal-note small">Si el error menciona el dominio o “demo”, el proveedor de correo está bloqueando ese destinatario.</p>' : '<p class="swal-note small">Si alguno no llega, revisa la carpeta de spam.</p>'}`,
+                confirmButtonText: "Listo",
+              });
+              router.refresh();
+            })
+          }
+        >
+          Probar con estos correos
+        </button>
         <button className="btn" disabled={pending || value === initial}>
           {pending ? "Guardando…" : "Guardar"}
         </button>
