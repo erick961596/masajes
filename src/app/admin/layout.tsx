@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="admin">
       <AdminNav />
-      {children}
+      <div className="admin-main">{children}</div>
     </div>
   );
 }

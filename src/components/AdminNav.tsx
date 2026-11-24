@@ -3,31 +3,50 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LINKS: [string, string, string][] = [
-  ["/admin", "Agenda", "📅"],
-  ["/admin/reservas", "Reservas", "🗂️"],
-  ["/admin/ganancias", "Ganancias", "📈"],
-  ["/admin/clientes", "Clientes", "👥"],
-  ["/admin/servicios", "Servicios", "💆"],
-  ["/admin/horarios", "Horarios", "🕘"],
-  ["/admin/bloqueos", "Bloqueos", "⛔"],
-  ["/admin/usuarios", "Usuarios", "🔑"],
-  ["/admin/configuracion", "Configuración", "⚙️"],
+const GROUPS: [string, [string, string][]][] = [
+  [
+    "Día a día",
+    [
+      ["/admin", "Agenda"],
+      ["/admin/reservas", "Reservas"],
+      ["/admin/clientes", "Clientes"],
+    ],
+  ],
+  [
+    "Negocio",
+    [
+      ["/admin/ganancias", "Ganancias"],
+      ["/admin/servicios", "Servicios y precios"],
+      ["/admin/horarios", "Horario"],
+      ["/admin/bloqueos", "Bloqueos"],
+    ],
+  ],
+  [
+    "Sistema",
+    [
+      ["/admin/usuarios", "Usuarios"],
+      ["/admin/configuracion", "Configuración"],
+    ],
+  ],
 ];
 
 export function AdminNav() {
   const path = usePathname();
   return (
     <nav className="admin-nav" aria-label="Administración">
-      {LINKS.map(([href, label, icon]) => {
-        const active = href === "/admin" ? path === href : path.startsWith(href);
-        return (
-          <Link key={href} href={href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
-            <span aria-hidden>{icon}</span>
-            {label}
-          </Link>
-        );
-      })}
+      {GROUPS.map(([group, links]) => (
+        <div key={group} className="nav-group">
+          <span className="nav-group-label">{group}</span>
+          {links.map(([href, label]) => {
+            const active = href === "/admin" ? path === href : path.startsWith(href);
+            return (
+              <Link key={href} href={href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }

@@ -9,6 +9,8 @@ App web para reservar sesiones de masaje y otros servicios.
 - **Correos** (Nodemailer por SMTP de Mailtrap; sin token cae a modo prueba con Ethereal) al cliente y al admin al crear, reagendar y cancelar.
 - Se asume una sola persona atendiendo: dos reservas no pueden encimarse, aunque sean de servicios distintos. La comprobación se hace en una transacción serializable.
 
+Contacto: solo WhatsApp (`config.whatsapp` en `src/lib/config.ts`, +506 8435 4520): enlace en el pie de página y botón flotante.
+
 Stack: Next.js 16 (App Router, TypeScript), Prisma 6 + Postgres, sesiones con cookie firmada (jose) y bcrypt.
 
 ## Desarrollo local

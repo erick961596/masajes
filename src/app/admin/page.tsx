@@ -87,33 +87,48 @@ export default async function AdminAgenda({ searchParams }: { searchParams: SP }
       )}
 
       <form method="get" className="toolbar">
-        <Link className="btn ghost small" href={`/admin?desde=${shiftDate(from, -7)}`} aria-label="Semana anterior">
-          ←<span className="hide-sm"> Anterior</span>
-        </Link>
-        <Link className="btn ghost small" href="/admin">
-          Hoy
-        </Link>
-        <Link className="btn ghost small" href={`/admin?desde=${to}`} aria-label="Semana siguiente">
-          <span className="hide-sm">Siguiente </span>→
-        </Link>
-        <input type="date" name="desde" defaultValue={from} aria-label="Semana desde" className="input-sm" />
-        <button className="btn ghost small">Ir</button>
+        <div className="btn-group">
+          <Link className="btn ghost small" href={`/admin?desde=${shiftDate(from, -7)}`} aria-label="Semana anterior">
+            ←
+          </Link>
+          <Link className="btn ghost small" href="/admin">
+            Hoy
+          </Link>
+          <Link className="btn ghost small" href={`/admin?desde=${to}`} aria-label="Semana siguiente">
+            →
+          </Link>
+        </div>
+        <div className="row-actions">
+          <input type="date" name="desde" defaultValue={from} aria-label="Semana desde" className="input-sm" />
+          <button className="btn ghost small">Ir</button>
+        </div>
       </form>
 
       <div className="agenda">
         {days.map((d) => {
           const list = byDay.get(d) ?? [];
+          const live = list.filter((b) => b.status !== "CANCELLED");
           return (
-            <section key={d} className={`agenda-day ${d === today ? "is-today" : ""}`}>
+            <section key={d} className={`agenda-day card ${d === today ? "is-today" : ""} ${list.length === 0 ? "empty-day" : ""}`}>
               <header>
-                <h3 className="capitalize">{d === today ? "Hoy · " : ""}{fmtDay(d)}</h3>
-                {blockedDays.has(d) ? (
-                  <span className="badge cancelled">Bloqueado</span>
-                ) : (
-                  <span className="muted small">{list.filter((b) => b.status !== "CANCELLED").length} cita(s)</span>
-                )}
+                <h3 className="capitalize">
+                  {d === today ? "Hoy · " : ""}
+                  {fmtDay(d)}
+                </h3>
+                <span className="agenda-day-meta">
+                  {blockedDays.has(d) && <span className="badge cancelled">Bloqueado</span>}
+                  {live.length ? (
+                    <span>
+                      {live.length} cita(s) · {colones(live.reduce((s, b) => s + b.priceCents, 0))}
+                    </span>
+                  ) : (
+                    <span>Sin citas</span>
+                  )}
+                </span>
               </header>
-              {list.length === 0 ? <p className="muted small agenda-free">Sin citas</p> : list.map((b) => <BookingRow key={b.id} b={b} />)}
+              {list.map((b) => (
+                <BookingRow key={b.id} b={b} />
+              ))}
             </section>
           );
         })}
